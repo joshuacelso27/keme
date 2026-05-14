@@ -1,0 +1,204 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>WatchMeWhip — Secure CCTV</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com"/>
+  <link href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600;700&family=Barlow+Condensed:wght@400;700&family=Share+Tech+Mono&display=swap" rel="stylesheet"/>
+  <link rel="stylesheet" href="{{ url_for('static', filename='login.css') }}"/>
+</head>
+<body>
+
+<!-- ═══════════════════════════════════════════════════ LOGIN ═══ -->
+<div class="card" id="loginCard">
+  <div class="logo">
+    <div class="logo-icon">
+      <svg viewBox="0 0 48 36" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <rect x="6" y="10" width="26" height="16" rx="3" fill="#111111"/>
+        <circle cx="32" cy="18" r="5" fill="#111111"/>
+        <circle cx="32" cy="18" r="2.5" fill="#444444"/>
+        <rect x="12" y="4" width="4" height="8" rx="1.5" fill="#111111"/>
+        <rect x="8" y="2" width="12" height="4" rx="2" fill="#111111"/>
+        <path d="M6 18 Q2 18 2 22 L2 30" stroke="#111111" stroke-width="2.5" stroke-linecap="round" fill="none"/>
+        <circle cx="36" cy="14" r="1.2" fill="#333"/>
+        <circle cx="38" cy="18" r="1.2" fill="#333"/>
+        <circle cx="36" cy="22" r="1.2" fill="#333"/>
+      </svg>
+    </div>
+    <div class="logo-text"><span>WATCHME</span>WHIP</div>
+  </div>
+
+  <div class="login-subtitle">Secure Monitoring System</div>
+
+  <form id="loginForm" novalidate>
+    <div class="form-group">
+      <input type="email" id="emailInput" placeholder="Email Address" autocomplete="email"/>
+      <div class="error-msg" id="emailError">Please enter a valid email address.</div>
+    </div>
+    <div class="form-group">
+      <input type="password" id="passwordInput" placeholder="Password" autocomplete="current-password"/>
+      <button type="button" class="toggle-pw" id="togglePw" aria-label="Toggle password visibility">
+        <svg id="eyeIcon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
+          <circle cx="12" cy="12" r="3"></circle>
+        </svg>
+      </button>
+      <div class="error-msg" id="passwordError">Password must be at least 6 characters.</div>
+    </div>
+    <button type="submit" class="btn-login" id="loginBtn">
+      <span class="btn-text">Login</span>
+      <span class="btn-spinner"><span class="spinner-ring"></span></span>
+    </button>
+  </form>
+  <div class="forgot"><a href="#">Forgot Password?</a></div>
+  <div class="security-note">🔒 All access attempts are monitored and logged</div>
+</div>
+
+<!-- ════════════════════════════════════════════════ DASHBOARD ═══ -->
+<div class="dashboard" id="dashboard">
+  <div class="sidebar">
+    <div class="sidebar-logo">
+      <svg viewBox="0 0 48 36" fill="none" width="28" height="21">
+        <rect x="6" y="10" width="26" height="16" rx="3" fill="#fff"/>
+        <circle cx="32" cy="18" r="5" fill="#fff"/>
+        <circle cx="32" cy="18" r="2.5" fill="#aaa"/>
+      </svg>
+      <span><b>WATCHME</b>WHIP</span>
+    </div>
+    <nav>
+      <a href="#" class="nav-item active" id="navDash" onclick="showPage('dashboard')">■ Dashboard</a>
+      <a href="#" class="nav-item" id="navLogs" onclick="showPage('logs')">📄 Session Logs</a>
+      <a href="#" class="nav-item" id="navIntrusion" onclick="showPage('intrusion')">🚨 Intrusion Logs</a>
+      <a href="#" class="nav-item" id="navSettings">⚙ System Settings</a>
+    </nav>
+    <div class="sidebar-user" id="sidebarUser"></div>
+  </div>
+
+  <div class="main" id="mainArea">
+
+    <!-- ── DASHBOARD PAGE ─────────────────────────── -->
+    <div id="pageDashboard">
+      <div class="topbar">
+        <h1>Dashboard</h1>
+        <div class="topbar-right">
+          <span class="topbar-time" id="clockDisplay"></span>
+          <button id="logoutBtn">→ Logout</button>
+        </div>
+      </div>
+
+      <div class="camera-grid">
+        <div class="camera-feed">
+          <div class="camera-screen">
+            <div class="live-badge">LIVE</div>
+            <div class="scan-line"></div>
+            <div class="cam-overlay-grid"></div>
+            <div class="cam-label">Camera 01 — Parking Lot</div>
+            <div class="cam-timestamp" id="camTimestamp"></div>
+            <div class="motion-alert" id="motionAlert">⚠ Motion Detected</div>
+          </div>
+          <div class="cam-controls">
+            <button onclick="toggleMotion()">👁 Simulate Motion</button>
+            <button onclick="toggleFeed()" id="pauseBtn">⏸ Pause Feed</button>
+            <span id="feedStatus">● Live</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="overview">
+        <h2>System Overview</h2>
+        <div class="overview-cards">
+          <div class="ov-card">
+            <div class="ov-title">System Health</div>
+            <div class="ov-val green">✔ All Systems Normal</div>
+          </div>
+          <div class="ov-card">
+            <div class="ov-title">Active Cameras</div>
+            <div class="ov-val">1 Online</div>
+          </div>
+          <div class="ov-card">
+            <div class="ov-title">Recent Activity</div>
+            <div class="ov-log" id="activityLog">
+              <div>No activity yet</div>
+            </div>
+          </div>
+          <div class="ov-card">
+            <div class="ov-title">Intrusion Alerts</div>
+            <div class="ov-val" id="intrusionCount" style="color:#cc2222;">Loading…</div>
+          </div>
+          <div class="ov-card">
+            <div class="ov-title">Session Started</div>
+            <div class="ov-val" id="sessionStarted">—</div>
+          </div>
+          <div class="ov-card">
+            <div class="ov-title">Logged In As</div>
+            <div class="ov-val" id="loggedInAs" style="font-size:12px;word-break:break-all;">—</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── SESSION LOGS PAGE ──────────────────────── -->
+    <div id="pageLogs" style="display:none;">
+      <div class="topbar">
+        <h1>Session Logs</h1>
+        <div class="topbar-right">
+          <button onclick="loadLogs()">↺ Refresh</button>
+          <button id="logoutBtnLogs">→ Logout</button>
+        </div>
+      </div>
+      <div class="logs-content">
+        <table class="logs-table">
+          <thead>
+            <tr>
+              <th>User / Admin</th>
+              <th>IP Address</th>
+              <th>Time In</th>
+              <th>Time Out</th>
+              <th>Date</th>
+              <th>Status</th>
+            </tr>
+          </thead>
+          <tbody id="logsTableBody">
+            <tr><td colspan="6">Loading…</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- ── INTRUSION LOGS PAGE ────────────────────── -->
+    <div id="pageIntrusion" style="display:none;">
+      <div class="topbar">
+        <h1>Intrusion Logs <span class="threat-badge">SECURITY</span></h1>
+        <div class="topbar-right">
+          <button onclick="loadLogs()">↺ Refresh</button>
+          <button id="logoutBtnIntrusion">→ Logout</button>
+        </div>
+      </div>
+      <div class="logs-content">
+        <div class="intrusion-notice">
+          ⚠ The following log records unauthorized or suspicious access attempts detected by the system.
+        </div>
+        <table class="logs-table">
+          <thead>
+            <tr>
+              <th>Attempted Email</th>
+              <th>IP Address</th>
+              <th>Reason / Threat</th>
+              <th>Time</th>
+              <th>Date</th>
+            </tr>
+          </thead>
+          <tbody id="intrusionTableBody">
+            <tr><td colspan="5">Loading…</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+  </div><!-- /main -->
+</div><!-- /dashboard -->
+
+<script src="{{ url_for('static', filename='login.js') }}"></script>
+</body>
+</html>
