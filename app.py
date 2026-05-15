@@ -12,22 +12,18 @@ app.secret_key = os.environ.get('SECRET_KEY', 'watchmewhip-secret-key-change-in-
 # ─── DATABASE ────────────────────────────────────────────────────────────────
 
 def get_db():
-    """Return a new psycopg2 connection using DATABASE_URL from environment."""
     db_url = os.environ.get('DATABASE_URL')
     if not db_url:
         raise RuntimeError('DATABASE_URL environment variable not set.')
-    # Railway sometimes returns postgres:// — psycopg2 needs postgresql://
     if db_url.startswith('postgres://'):
         db_url = db_url.replace('postgres://', 'postgresql://', 1)
     return psycopg2.connect(db_url, cursor_factory=psycopg2.extras.RealDictCursor)
 
 
 def init_db():
-    """Create tables if they don't exist."""
     conn = get_db()
     cur = conn.cursor()
 
-    # Users table
     cur.execute("""
         CREATE TABLE IF NOT EXISTS users (
             id SERIAL PRIMARY KEY,
@@ -38,7 +34,6 @@ def init_db():
         );
     """)
 
-    # Session / login logs
     cur.execute("""
         CREATE TABLE IF NOT EXISTS session_logs (
             id SERIAL PRIMARY KEY,
@@ -52,7 +47,6 @@ def init_db():
         );
     """)
 
-    # Intrusion / failed attempt logs
     cur.execute("""
         CREATE TABLE IF NOT EXISTS intrusion_logs (
             id SERIAL PRIMARY KEY,
@@ -64,7 +58,6 @@ def init_db():
         );
     """)
 
-    # Seed default user if none exist
     cur.execute("SELECT COUNT(*) as cnt FROM users;")
     row = cur.fetchone()
     if row['cnt'] == 0:
@@ -90,7 +83,6 @@ def is_valid_email(email):
 
 
 def get_client_ip():
-    # Handle proxies (Railway sits behind a proxy)
     forwarded = request.headers.get('X-Forwarded-For')
     if forwarded:
         return forwarded.split(',')[0].strip()
@@ -112,17 +104,14 @@ def log_intrusion(email, reason):
         print(f'[intrusion_log error] {e}')
 
 
-# Brute-force tracker: ip -> list of attempt timestamps (in-memory, resets on restart)
 _failed_attempts: dict = {}
-MAX_ATTEMPTS = 5          # max failures before lockout
-LOCKOUT_SECONDS = 300     # 5-minute lockout
+MAX_ATTEMPTS = 5
+LOCKOUT_SECONDS = 300
 
 
 def check_brute_force(ip):
-    """Return (is_locked, attempts_remaining)."""
     now = datetime.now(timezone.utc).timestamp()
     attempts = _failed_attempts.get(ip, [])
-    # Keep only recent attempts within lockout window
     attempts = [t for t in attempts if now - t < LOCKOUT_SECONDS]
     _failed_attempts[ip] = attempts
     if len(attempts) >= MAX_ATTEMPTS:
@@ -154,7 +143,6 @@ def api_login():
     ip = get_client_ip()
     ua = request.headers.get('User-Agent', '')
 
-    # ── Validation ──────────────────────────────────────────────────────────
     if not is_valid_email(email):
         log_intrusion(email, 'Invalid email format on login attempt')
         return jsonify(success=False, field='email', message='Invalid email address.'), 400
@@ -163,7 +151,6 @@ def api_login():
         log_intrusion(email, 'Password too short on login attempt')
         return jsonify(success=False, field='password', message='Password must be at least 6 characters.'), 400
 
-    # ── Brute-force check ───────────────────────────────────────────────────
     locked, remaining = check_brute_force(ip)
     if locked:
         log_intrusion(email, f'Brute-force lockout triggered from IP {ip}')
@@ -172,7 +159,6 @@ def api_login():
             message=f'Too many failed attempts. Try again in {LOCKOUT_SECONDS // 60} minutes.'
         ), 429
 
-    # ── DB auth ─────────────────────────────────────────────────────────────
     try:
         conn = get_db()
         cur = conn.cursor()
@@ -196,7 +182,6 @@ def api_login():
             msg += f' {remaining2} attempt(s) remaining before lockout.'
         return jsonify(success=False, field='email', message=msg), 401
 
-    # ── Success ─────────────────────────────────────────────────────────────
     clear_failed(ip)
     now = datetime.now(timezone.utc)
     date_label = now.strftime('%B %d, %Y')
@@ -230,6 +215,55 @@ def api_login():
     )
 
 
+@app.route('/api/session', methods=['GET'])
+def api_session():
+    """Check if a valid server-side session exists — used on page refresh."""
+    if 'user_email' not in session:
+        return jsonify(success=False, message='No active session'), 401
+
+    email = session['user_email']
+    session_log_id = session.get('session_log_id')
+
+    try:
+        conn = get_db()
+        cur = conn.cursor()
+        cur.execute("SELECT role FROM users WHERE email = %s", (email,))
+        user = cur.fetchone()
+
+        time_in_str = None
+        date_label_str = None
+        if session_log_id:
+            cur.execute("""
+                SELECT TO_CHAR(time_in AT TIME ZONE 'UTC', 'HH24:MI:SS') AS time_in,
+                       date_label
+                FROM session_logs WHERE id = %s
+            """, (session_log_id,))
+            log_row = cur.fetchone()
+            if log_row:
+                time_in_str = log_row['time_in']
+                date_label_str = log_row['date_label']
+
+        cur.close()
+        conn.close()
+    except Exception as e:
+        print(f'[db error] {e}')
+        return jsonify(success=False, message='Database error'), 500
+
+    if not user:
+        session.clear()
+        return jsonify(success=False, message='User not found'), 401
+
+    now = datetime.now(timezone.utc)
+    return jsonify(
+        success=True,
+        user=email,
+        role=user['role'],
+        timeIn=time_in_str or now.strftime('%H:%M:%S'),
+        date=date_label_str or now.strftime('%B %d, %Y'),
+        sessionId=session_log_id
+    )
+
+
 @app.route('/api/logout', methods=['POST'])
 def api_logout():
     session_log_id = session.get('session_log_id')
@@ -256,7 +290,6 @@ def api_logout():
 
 @app.route('/api/logs', methods=['GET'])
 def api_logs():
-    """Return session logs and intrusion logs for the dashboard."""
     if 'user_email' not in session:
         return jsonify(success=False, message='Unauthorized'), 401
 
@@ -266,8 +299,8 @@ def api_logs():
 
         cur.execute("""
             SELECT user_email, ip_address,
-                   TO_CHAR(time_in AT TIME ZONE 'UTC', 'HH24:MI:SS') AS time_in,
-                   TO_CHAR(time_out AT TIME ZONE 'UTC', 'HH24:MI:SS') AS time_out,
+                   TO_CHAR(time_in AT TIME ZONE 'UTC', 'YYYY-MM-DD HH24:MI:SS') AS time_in,
+                   TO_CHAR(time_out AT TIME ZONE 'UTC', 'YYYY-MM-DD HH24:MI:SS') AS time_out,
                    date_label, status
             FROM session_logs
             ORDER BY time_in DESC
@@ -278,7 +311,8 @@ def api_logs():
         cur.execute("""
             SELECT attempted_email, ip_address, reason,
                    TO_CHAR(attempted_at AT TIME ZONE 'UTC', 'HH24:MI:SS') AS time,
-                   TO_CHAR(attempted_at AT TIME ZONE 'UTC', 'YYYY-MM-DD') AS date
+                   TO_CHAR(attempted_at AT TIME ZONE 'UTC', 'YYYY-MM-DD') AS date,
+                   TO_CHAR(attempted_at AT TIME ZONE 'UTC', 'YYYY-MM-DD HH24:MI:SS') AS full_datetime
             FROM intrusion_logs
             ORDER BY attempted_at DESC
             LIMIT 100
