@@ -200,6 +200,13 @@ body::after {
 }
 .topbar button:hover { background: #111; color: #fff; border-color: #111; }
 
+.btn-refresh {
+  background: #f5f5f5 !important;
+  border: 1px solid #ccc !important;
+  font-weight: 600 !important;
+}
+.btn-refresh:hover { background: #111 !important; color: #fff !important; }
+
 .threat-badge {
   font-size: 10px; font-weight: 700;
   background: var(--danger); color: #fff;
@@ -207,12 +214,109 @@ body::after {
   letter-spacing: 0.08em; vertical-align: middle;
 }
 
+/* ─── SPLIT DASHBOARD LAYOUT ───────────────────────────────────── */
+.dashboard-split {
+  display: flex;
+  gap: 0;
+  flex: 1;
+  overflow: hidden;
+  height: calc(100vh - 57px);
+}
+
+.left-panel {
+  flex: 1;
+  min-width: 0;
+  overflow-y: auto;
+  padding: 16px 16px 16px 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  border-right: 1px solid #e0e0e0;
+}
+
+.right-panel {
+  width: 420px;
+  flex-shrink: 0;
+  overflow-y: auto;
+  padding: 16px 20px 16px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.panel-section {
+  background: #fff;
+  border-radius: 8px;
+  border: 1px solid #e0e0e0;
+  overflow: hidden;
+}
+
+.panel-section-title {
+  font-size: 12px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+  color: #fff;
+  background: #111;
+  padding: 9px 14px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.overview-cards-vert {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0;
+}
+
+.ov-card {
+  padding: 12px 14px;
+  border-right: 1px solid #f0f0f0;
+  border-bottom: 1px solid #f0f0f0;
+}
+.ov-card:nth-child(even) { border-right: none; }
+
+.ov-title { font-size: 10px; color: #888; margin-bottom: 5px; text-transform: uppercase; letter-spacing: 0.05em; }
+.ov-val { font-size: 13px; font-weight: 600; color: #111; }
+.ov-val.green { color: var(--success); }
+
+/* Activity log mini table */
+.activity-table-wrap { overflow-x: auto; }
+
+.mini-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 12px;
+}
+.mini-table th {
+  background: #f5f5f5;
+  color: #555;
+  padding: 8px 12px;
+  text-align: left;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  border-bottom: 1px solid #e8e8e8;
+}
+.mini-table td {
+  padding: 8px 12px;
+  color: #333;
+  border-bottom: 1px solid #f5f5f5;
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 11px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 160px;
+}
+.mini-table tr:last-child td { border-bottom: none; }
+.mini-table tr:hover td { background: #fafafa; }
+.mini-table td[colspan] { text-align: center; color: #aaa; font-family: 'Barlow', sans-serif; white-space: normal; max-width: none; }
+
 /* ─── CAMERA ───────────────────────────────────────────────────── */
-.camera-grid { padding: 20px 24px 0; }
 .camera-feed {
-  background: #fff; border-radius: 8px;
-  border: 1px solid #e0e0e0; overflow: hidden;
-  max-width: 520px;
+  overflow: hidden;
 }
 .camera-screen {
   background: #0d0d0d; aspect-ratio: 16/9;
@@ -221,7 +325,6 @@ body::after {
   overflow: hidden;
 }
 
-/* scanline animation */
 .scan-line {
   position: absolute; left: 0; right: 0; height: 2px;
   background: rgba(255,255,255,0.06);
@@ -230,7 +333,6 @@ body::after {
 }
 @keyframes scanDown { from { top: 0; } to { top: 100%; } }
 
-/* grid overlay */
 .cam-overlay-grid {
   position: absolute; inset: 0;
   background-image:
@@ -282,17 +384,7 @@ body::after {
 .cam-controls button:hover { background: #e0e0e0; }
 #feedStatus { margin-left: auto; font-size: 12px; color: var(--success); font-weight: 600; }
 
-/* ─── OVERVIEW CARDS ───────────────────────────────────────────── */
-.overview { padding: 20px 24px; }
-.overview h2 { font-size: 15px; font-weight: 600; margin-bottom: 14px; color: #222; }
-.overview-cards { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
-.ov-card { background: #fff; border-radius: 8px; border: 1px solid #e8e8e8; padding: 14px 16px; }
-.ov-title { font-size: 11px; color: #888; margin-bottom: 8px; text-transform: uppercase; letter-spacing: 0.05em; }
-.ov-val { font-size: 14px; font-weight: 600; color: #111; }
-.ov-val.green { color: var(--success); }
-.ov-log { font-size: 11px; color: #555; line-height: 1.9; font-family: 'Share Tech Mono', monospace; }
-
-/* ─── LOGS TABLES ──────────────────────────────────────────────── */
+/* ─── FULL LOGS TABLES ─────────────────────────────────────────── */
 .logs-content { padding: 20px 24px; overflow-x: auto; }
 
 .intrusion-notice {
@@ -331,3 +423,14 @@ body::after {
 .status-closed { color: #aaa; }
 .intrusion-row td { background: #fff8f8 !important; }
 .intrusion-row:hover td { background: #fff0f0 !important; }
+
+/* ─── LOCATION BADGE ───────────────────────────────────────────── */
+.loc-badge {
+  display: inline-block;
+  background: #f0f0f0;
+  border-radius: 3px;
+  padding: 1px 6px;
+  font-size: 11px;
+  color: #666;
+  font-family: 'Barlow', sans-serif;
+}
